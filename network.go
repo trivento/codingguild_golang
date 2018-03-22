@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/trivento/network/iptools"
+	"math/rand"
 )
 
 /*
@@ -52,12 +53,32 @@ func logKnownHosts() {
 	}
 }
 
-func pinger() {
-	log.Println("Starting the pinger")
+// De gossip daemon moet oneindig lang draaien en periodiek een gossip doen naar een aantal, of alle members
+func gossipDaemon() {
+	log.Println("Starting the gossipDaemon")
 	for true {
 		m, _ := getMembers()
 		logKnownHosts()
+		var gossipTo []string
+
+		membersAsList := make([]string, len(store))
+		idx := 0
 		for node := range store {
+			membersAsList[idx] = node
+			idx++
+		}
+
+		if len(membersAsList) < 4 {
+			gossipTo = membersAsList
+		} else {
+			gossipTo = make([]string, 4)
+			for idx := range gossipTo {
+				pick := rand.Intn(len(membersAsList))
+				gossipTo[idx] = membersAsList[pick]
+			}
+		}
+
+		for _, node := range gossipTo {
 			// Do not send to self
 			if !strings.HasPrefix(node, myHost) {
 				logline := fmt.Sprintf("Sending to %s", node)
@@ -69,8 +90,6 @@ func pinger() {
 					logline = fmt.Sprintf("%s. Result: [%s]", logline, r.Status)
 				}
 				log.Print(logline)
-				time.Sleep(5 * time.Second)
-
 			}
 		}
 		time.Sleep(5 * time.Second)
@@ -126,7 +145,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	go pinger()
+	go gossipDaemon()
 	http.HandleFunc("/members", handler)
 	port := 8080
 	listenIP := iptools.GetOutboundIP()
