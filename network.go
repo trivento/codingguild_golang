@@ -9,29 +9,22 @@ import (
 	"strconv"
 	"time"
 	"bytes"
-	"net"
 	"strings"
+	"github.com/trivento/network/iptools"
 )
-
+//{"nodes":["http://10.248.30.150:8082","http://10.248.30.150:8081"]}
 type members struct {
 	Nodes []string `json:"nodes"`
 }
 
 var store = make(map[string]bool)
+
+func addMember(member string) {
+	store[member] = true
+}
+
 var myHost string
 
-// Get preferred outbound ip of this machine
-func GetOutboundIP() net.IP {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-
-	return localAddr.IP
-}
 
 func logKnownHosts() {
 	log.Printf("Known hosts:\n")
@@ -78,10 +71,10 @@ func getMembers()([]byte, error) {
 func handlePost(w http.ResponseWriter, r *http.Request) {
 	var m members
 
-	//if r.Body == nil {
-	//	http.Error(w, "Please send a request body", 400)
-	//	return
-	//}
+	if r.Body == nil {
+		http.Error(w, "Please send a request body", 400)
+		return
+	}
 
 	err := json.NewDecoder(r.Body).Decode(&m)
 	if err != nil {
@@ -99,53 +92,17 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		result = append(result, k)
 	}
 
-	b, _ := json.Marshal(members{result})
-
-	fmt.Fprintf(w, "%s\n", b)
-}
-func handleDelete(w http.ResponseWriter, r *http.Request) {
-	var m members
-
-	//if r.Body == nil {
-	//	http.Error(w, "Please send a request body", 400)
-	//	return
-	//}
-
-	err := json.NewDecoder(r.Body).Decode(&m)
-	if err != nil {
-		http.Error(w, err.Error(), 400)
-		return
+	b, me := json.Marshal(members{result})
+	if me != nil {
+		log.Printf("Error creating response: " + me.Error())
+	} else {
+		fmt.Fprintf(w, "%s\n", b)
 	}
-
-	for _, x := range m.Nodes {
-		deleteMember(x)
-	}
-
-	var result []string
-
-	for k := range store {
-		result = append(result, k)
-	}
-
-	b, _ := json.Marshal(members{result})
-
-	fmt.Fprintf(w, "%s\n", b)
-}
-
-func addMember(member string) {
-	store[member] = true
-}
-func deleteMember(member string) {
-	log.Printf("Delete: %s", member)
-	delete(store, member)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		handlePost(w, r)
-	}
-	if r.Method == "DELETE" {
-		handleDelete(w, r)
 	}
 }
 
@@ -153,9 +110,11 @@ func main() {
 	go pinger()
 	http.HandleFunc("/members", handler)
 	port := 8080
-	listenIp := GetOutboundIP()
+	listenIp := iptools.GetOutboundIP()
 	if len(os.Args) >= 2 {
-		addMember(os.Args[1])
+		if os.Args[1] != "seed" {
+			addMember(os.Args[1])
+		}
 	}
 	if len(os.Args) == 3 {
 		p, err := strconv.Atoi(os.Args[2])
