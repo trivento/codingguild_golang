@@ -1,15 +1,16 @@
 package main
 
 import (
-	"net/http"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
-	"encoding/json"
+	"net/http"
 	"os"
 	"strconv"
-	"time"
-	"bytes"
 	"strings"
+	"time"
+
 	"github.com/trivento/network/iptools"
 )
 
@@ -27,8 +28,7 @@ actief (gossippen van kennis over het cluster) participeert.
 	vb: {"nodes":["http://10.248.30.150:8082","http://10.248.30.143:8081"]}
 
 
- */
-
+*/
 
 // Data structuur
 //{"nodes":["http://10.248.30.150:8082","http://10.248.30.150:8081"]}
@@ -45,7 +45,6 @@ func addMember(member string) {
 
 var myHost string
 
-
 func logKnownHosts() {
 	log.Printf("Known hosts:\n")
 	for node := range store {
@@ -55,7 +54,7 @@ func logKnownHosts() {
 
 func pinger() {
 	log.Println("Starting the pinger")
-	for ;true;	{
+	for true {
 		m, _ := getMembers()
 		logKnownHosts()
 		for node := range store {
@@ -78,7 +77,7 @@ func pinger() {
 	}
 }
 
-func getMembers()([]byte, error) {
+func getMembers() ([]byte, error) {
 	var result []string
 
 	for k := range store {
@@ -130,7 +129,7 @@ func main() {
 	go pinger()
 	http.HandleFunc("/members", handler)
 	port := 8080
-	listenIp := iptools.GetOutboundIP()
+	listenIP := iptools.GetOutboundIP()
 	if len(os.Args) >= 2 {
 		if os.Args[1] != "seed" {
 			addMember(os.Args[1])
@@ -139,13 +138,13 @@ func main() {
 	if len(os.Args) == 3 {
 		p, err := strconv.Atoi(os.Args[2])
 		if err != nil {
-			log.Println("Invalid port argument %s, falling back to 8080.", os.Args[3])
+			log.Printf("Invalid port argument %s, falling back to 8080.", os.Args[3])
 		} else {
 			port = p
 		}
 		fmt.Println(os.Args[1])
 	}
-	listenAddr := fmt.Sprintf("%s:%d", listenIp, port)
+	listenAddr := fmt.Sprintf("%s:%d", listenIP, port)
 	myHost = "http://" + listenAddr
 	addMember(myHost)
 	log.Printf("Started on port %s", myHost)
