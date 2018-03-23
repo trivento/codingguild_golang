@@ -14,8 +14,9 @@ go get github.com/trivento/codingguild_golang/gossip
 
 Start the main node
 
-    $GOPATH/bin/gossip -port 9090
+    go build github.com/trivento/codingguild_golang/gossip
 
+    $GOPATH/bin/gossip -port 9090
 
 Start a second node, which makes itself known to the main node.
 
@@ -24,9 +25,12 @@ Start a second node, which makes itself known to the main node.
 ## Alternative way to start during development.
 
 ```
-go run $GOPATH/src/github.com/trivento/codingguild_golang/gossip/main.go -port 9090
+    go build github.com/trivento/codingguild_golang/gossip
 
-go run $GOPATH/src/github.com/trivento/codingguild_golang/gossip/main.go -port 9091 -seednode http://HOST:PORT
+
+go run $GOPATH/src/github.com/trivento/codingguild_golang/gossip/*.go -port 9090
+
+go run $GOPATH/src/github.com/trivento/codingguild_golang/gossip/*.go -port 9091 -seednode http://HOST:PORT
 
 ```
 
