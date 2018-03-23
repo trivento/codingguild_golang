@@ -2,7 +2,7 @@
 
 Let's create our own gossip network.
 We need one node in the network initially.
-Then we can start others node, which will make it self known to one of the existing nodes.
+Then we can start other node, which will make themselves known to the main node (or one of the other running nodes).
 
 All nodes will keep sending each other the list of known hosts periodically.
 
@@ -21,6 +21,18 @@ Start a second node, which makes itself known to the main node.
 
     $GOPATH/bin/gossip -port 9091 -seednode http://HOST:PORT
 
+## Alternative way to start during development.
+
+```
+go run $GOPATH/src/github.com/trivento/codingguild_golang/gossip/main.go -port 9090
+
+go run $GOPATH/src/github.com/trivento/codingguild_golang/gossip/main.go -port 9091 -seednode http://HOST:PORT
+
+```
+
+
+## Advanced
+
 Start some more nodes. 
 In the current implementation, this could break the main node! (fatal error: concurrent map writes)
 
@@ -33,7 +45,11 @@ In the current implementation, this could break the main node! (fatal error: con
         port=$[$port+1]
     done
 
-The list of hosts will now propagate to the netwokr.
+The list of hosts will now propagate to the network.
 
+
+When you are done, get rid of all nodes.
+
+    ps -ef | grep gossip | awk '{print $2}' | xargs kill    
 
 

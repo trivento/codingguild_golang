@@ -3,15 +3,16 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 	"time"
-	"flag"
+
+	"math/rand"
 
 	"github.com/trivento/codingguild_golang/iptools"
-	"math/rand"
 )
 
 /*
@@ -158,7 +159,7 @@ func main() {
 	if seednode != "NONE" {
 		addMember(seednode)
 	}
-	
+
 	listenAddr := fmt.Sprintf("%s:%d", listenIP, port)
 	myHost = "http://" + listenAddr
 	addMember(myHost)
