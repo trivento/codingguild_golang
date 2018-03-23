@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strconv"
 	"strings"
 	"time"
+	"flag"
 
-	"github.com/trivento/network/iptools"
+	"github.com/trivento/codingguild_golang/iptools"
 	"math/rand"
 )
 
@@ -146,23 +145,20 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	go gossipDaemon()
+
 	http.HandleFunc("/members", handler)
-	port := 8080
+	iport := flag.Int("port", 8080, "port of the daemon")
+	iseednode := flag.String("seednode", "NONE", "when you specify a seednode, this node will make itself known to main node")
+
+	flag.Parse()
+	port := *iport
+	seednode := *iseednode
+
 	listenIP := iptools.GetOutboundIP()
-	if len(os.Args) >= 2 {
-		if os.Args[1] != "seed" {
-			addMember(os.Args[1])
-		}
+	if seednode != "NONE" {
+		addMember(seednode)
 	}
-	if len(os.Args) == 3 {
-		p, err := strconv.Atoi(os.Args[2])
-		if err != nil {
-			log.Printf("Invalid port argument %s, falling back to 8080.", os.Args[3])
-		} else {
-			port = p
-		}
-		fmt.Println(os.Args[1])
-	}
+	
 	listenAddr := fmt.Sprintf("%s:%d", listenIP, port)
 	myHost = "http://" + listenAddr
 	addMember(myHost)
