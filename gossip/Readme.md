@@ -14,7 +14,7 @@ go get github.com/trivento/codingguild_golang/gossip
 
 Start the main node
 
-    go build github.com/trivento/codingguild_golang/gossip
+    go install github.com/trivento/codingguild_golang/gossip
 
     $GOPATH/bin/gossip -port 9090
 
