@@ -1,16 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
-	"time"
-
-	"math/rand"
 
 	"github.com/trivento/codingguild_golang/iptools"
 )
@@ -31,82 +26,9 @@ actief (gossippen van kennis over het cluster) participeert.
 
 */
 
-// Data structuur
-//{"nodes":["http://10.248.30.150:8082","http://10.248.30.150:8081"]}
-type members struct {
-	Nodes []string `json:"nodes"`
-}
-
-// Maak een store waarin alle members gezet worden. Tip: Go kent geen Set
-var store = make(map[string]bool)
-
-func addMember(member string) {
-	store[member] = true
-}
-
 var myHost string
 
-func logKnownHosts() {
-	log.Printf("Known hosts:\n")
-	for node := range store {
-		log.Printf("\t- %s\n", node)
-	}
-}
-
-// De gossip daemon moet oneindig lang draaien en periodiek een gossip doen naar een aantal, of alle members
-func gossipDaemon() {
-	log.Println("Starting the gossipDaemon")
-	for true {
-		m, _ := getMembers()
-		logKnownHosts()
-		var gossipTo []string
-
-		membersAsList := make([]string, len(store))
-		idx := 0
-		for node := range store {
-			membersAsList[idx] = node
-			idx++
-		}
-
-		if len(membersAsList) < 4 {
-			gossipTo = membersAsList
-		} else {
-			gossipTo = make([]string, 4)
-			for idx := range gossipTo {
-				pick := rand.Intn(len(membersAsList))
-				gossipTo[idx] = membersAsList[pick]
-			}
-		}
-
-		for _, node := range gossipTo {
-			// Do not send to self
-			if !strings.HasPrefix(node, myHost) {
-				logline := fmt.Sprintf("Sending to %s", node)
-				r, e := http.Post(node+"/members", "application/json", bytes.NewReader(m))
-				if e != nil {
-					logline = fmt.Sprintf("%s. Error: %s", logline, e.Error())
-					delete(store, node)
-				} else {
-					logline = fmt.Sprintf("%s. Result: [%s]", logline, r.Status)
-				}
-				log.Print(logline)
-			}
-		}
-		time.Sleep(5 * time.Second)
-	}
-}
-
-func getMembers() ([]byte, error) {
-	var result []string
-
-	for k := range store {
-		result = append(result, k)
-	}
-
-	return json.Marshal(members{result})
-}
-
-func handlePost(w http.ResponseWriter, r *http.Request) {
+func handlePost(w http.ResponseWriter, r *http.Request, memberchannel chan []string) {
 	var m members
 
 	if r.Body == nil {
@@ -120,17 +42,10 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, x := range m.Nodes {
-		addMember(x)
-	}
+	memberchannel <- m.Nodes
 
-	var result []string
+	b, me := getMembers()
 
-	for k := range store {
-		result = append(result, k)
-	}
-
-	b, me := json.Marshal(members{result})
 	if me != nil {
 		log.Printf("Error creating response: " + me.Error())
 	} else {
@@ -138,16 +53,28 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		handlePost(w, r)
-	}
-}
-
 func main() {
-	go gossipDaemon()
 
-	http.HandleFunc("/members", handler)
+	memberchannel := make(chan []string, 100)
+
+	go broadcast()
+
+	go func() {
+		for {
+			memberlistupdate := <-memberchannel
+			log.Printf("Processing memberlist %v", memberlistupdate)
+			addMembers(memberlistupdate)
+			log.Printf("Done processing memberlist %v", memberlistupdate)
+
+		}
+	}()
+
+	http.HandleFunc("/members", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			handlePost(w, r, memberchannel)
+		}
+	})
+
 	iport := flag.Int("port", 8080, "port of the daemon")
 	iseednode := flag.String("seednode", "NONE", "when you specify a seednode, this node will make itself known to main node")
 
@@ -156,13 +83,16 @@ func main() {
 	seednode := *iseednode
 
 	listenIP := iptools.GetOutboundIP()
-	if seednode != "NONE" {
-		addMember(seednode)
-	}
-
 	listenAddr := fmt.Sprintf("%s:%d", listenIP, port)
 	myHost = "http://" + listenAddr
-	addMember(myHost)
+
+	memberlist := []string{myHost}
+	if seednode != "NONE" {
+		memberlist = append(memberlist, seednode)
+	}
+	memberchannel <- memberlist
+
 	log.Printf("Started on port %s", myHost)
 	log.Fatal(http.ListenAndServe(listenAddr, nil))
+
 }

@@ -1,55 +1,56 @@
-# Gossip
+# Go
 
-Let's create our own gossip network.
-We need one node in the network initially.
-Then we can start other node, which will make themselves known to the main node (or one of the other running nodes).
+The following GO modules are present here:
 
-All nodes will keep sending each other the list of known hosts periodically.
+* Basic: examples containing some basic GO code constructs.
+* Gossip: a network gossiper for creating a network of communicating nodes. 
 
 ```
-mkdir $HOME/go
 export GOPATH=$HOME/go
+go get github.com/trivento/codingguild_golang/basics
 go get github.com/trivento/codingguild_golang/gossip
 ```
 
-Start the main node
+## Creating a new package
+``` 
+mkdir $GOPATH/src/github.com/trivento/codingguild_golang/yourpackage
+touch  $GOPATH/src/github.com/trivento/codingguild_golang/yourpackage/main.go
+```
+and add the following code to `main.go`
+```
+package main
 
-    $GOPATH/bin/gossip -port 9090
+import (
+	"fmt"
+)
 
+func main() {
 
-Start a second node, which makes itself known to the main node.
+	fmt.Println("Ready to go")
 
-    $GOPATH/bin/gossip -port 9091 -seednode http://HOST:PORT
+}
+```
+Create an run your package
+```
+    go install github.com/trivento/codingguild_golang/yourpackage && $GOPATH/bin/yourpackage
+```
+Note that in Go the resuling exectuable will contain all dependent code.
 
-## Alternative way to start during development.
+## Tooling
+* Visual Studio Code [https://code.visualstudio.com/docs/languages/go]
+* Goland/IntelliJ
+
+## Book: The Go Programming Language 
+
+* Website [http://www.gopl.io]. 
+* Source code [https://github.com/adonovan/gopl.io/]
+* You can download the first chapter [http://www.gopl.io/ch1.pdf]
+
+You can use all the examples like this:
 
 ```
-go run $GOPATH/src/github.com/trivento/codingguild_golang/gossip/main.go -port 9090
-
-go run $GOPATH/src/github.com/trivento/codingguild_golang/gossip/main.go -port 9091 -seednode http://HOST:PORT
-
-```
-
-
-## Advanced
-
-Start some more nodes. 
-In the current implementation, this could break the main node! (fatal error: concurrent map writes)
-
-
-    SEEDNODE=http://HOST:PORT
-    port=9100
-    while [ $port -lt 9105 ]
-    do
-        $GOPATH/bin/gossip -port $port -seednode $SEEDNODE &
-        port=$[$port+1]
-    done
-
-The list of hosts will now propagate to the network.
-
-
-When you are done, get rid of all nodes.
-
-    ps -ef | grep gossip | awk '{print $2}' | xargs kill    
-
+export GOPATH=$HOME/gobook
+go get gopl.io/ch1/helloworld
+$GOPATH/bin/helloworld
+``` 
 
