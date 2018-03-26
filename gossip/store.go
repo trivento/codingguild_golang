@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"log"
 )
 
@@ -17,16 +17,12 @@ type command struct {
 	memberlist []string
 }
 
+// De processLoop is een eeuwige lus die commands van het commandChan afhandeld
 func processLoop(commandChan chan command) {
 	for {
 		command := <-commandChan
 		log.Printf("Processing command %v", command)
-		if command.name == DELETE {
-			store.deleteMembers(command.memberlist)
-		} else if command.name == ADD {
-			store.addMembers(command.memberlist)
-		}
-
+		// TODO implement
 	}
 }
 
@@ -36,36 +32,35 @@ type members struct {
 	Nodes []string `json:"nodes"`
 }
 
-// Store is the internal structure to store all network members
+// Store is de internal structure om network members in op te slaan
+
 type Store struct {
-	members map[string]bool
+	// maak een members attribuut. Tip: Go kent geen Set
+	// TODO implement
 }
 
-// Maak een store waarin alle members gezet worden. Tip: Go kent geen Set
-var store = Store{make(map[string]bool)}
+// Maak een instantie van de store waarin alle members gezet worden.
+var store = Store{
+	// TODO implement
+}
 
+// voeg alle members in de memberlist toe aan de store
+// Mag alleen aangeroepen worden vanuit de processLoop
 func (store *Store) addMembers(memberlist []string) {
-	for _, m := range memberlist {
-		store.members[m] = true
-	}
+	// TODO implement
 }
 
 func (store *Store) getMembersAsList() []string {
-	membersAsList := make([]string, len(store.members))
-	idx := 0
-	for node := range store.members {
-		membersAsList[idx] = node
-		idx++
-	}
-	return membersAsList
+	// TODO implement
+	return nil
 }
 
+// Mag alleen aangeroepen worden vanuit de processLoop
 func (store *Store) deleteMembers(memberlist []string) {
-	for _, m := range memberlist {
-		delete(store.members, m)
-	}
+	// TODO implement
 }
 
 func (store *Store) getMembersAsJSON() ([]byte, error) {
-	return json.Marshal(members{store.getMembersAsList()})
+	// TODO implement
+	return nil, errors.New("not implemented")
 }

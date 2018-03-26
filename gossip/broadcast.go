@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 
 // Make an array of max 4 with random nodes
 func get4RandomMembers() []string {
+	// TODO implement
 	membersAsList := store.getMembersAsList()
 
 	var gossipTo []string
@@ -19,10 +19,7 @@ func get4RandomMembers() []string {
 		gossipTo = membersAsList
 	} else {
 		gossipTo = make([]string, 4)
-		for idx := range gossipTo {
-			pick := rand.Intn(len(membersAsList))
-			gossipTo[idx] = membersAsList[pick]
-		}
+		// TODO implement. Tip 'rand.Intn(4) kiest een random getal tussen 0 (inc) en 4 (excl)'
 	}
 	return gossipTo
 }
@@ -32,10 +29,14 @@ func get4RandomMembers() []string {
 func broadcast(commandChannel chan command) {
 	log.Println("Starting the broadcast")
 	for true {
-		m, _ := store.getMembersAsJSON()
+		gossipTo := get4RandomMembers()
+		log.Printf("Gossip to: %s", gossipTo)
 		logKnownHosts()
 
-		gossipTo := get4RandomMembers()
+		// Create the json with the structure: {"nodes":["http://10.248.30.150:8082","http://10.248.30.150:8081"]}
+		// implemented in store.go
+		m, _ := store.getMembersAsJSON()
+		// gossip the known hosts to the gossiplist
 
 		for _, node := range gossipTo {
 			// Do not send to self
@@ -57,7 +58,7 @@ func broadcast(commandChannel chan command) {
 
 func logKnownHosts() {
 	log.Printf("Known hosts:\n")
-	for node := range store.members {
+	for _, node := range store.getMembersAsList() {
 		log.Printf("\t- %s\n", node)
 	}
 }

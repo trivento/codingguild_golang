@@ -43,16 +43,11 @@ func handleGossip(w http.ResponseWriter, r *http.Request, commandChannel chan co
 	}
 
 	// Send the ADD command to the channel
-	commandChannel <- command{ADD, m.Nodes}
+	// TODO implement
 
 	// write all members as json to the response
-	b, me := store.getMembersAsJSON()
-
-	if me != nil {
-		log.Printf("Error creating response: " + me.Error())
-	} else {
-		fmt.Fprintf(w, "%s\n", b)
-	}
+	// TODO implement
+	fmt.Fprintln(w, "Needs to be implemented")
 }
 
 func main() {
@@ -60,8 +55,10 @@ func main() {
 	// This is the command channel with a buffer size of 100
 	commandChannel := make(chan command, 100)
 
-	go broadcast(commandChannel)
-	go processLoop(commandChannel)
+	// Start de broadcast
+	// TODO implement
+	// Start de processLoop
+	// TODO implement
 
 	http.HandleFunc("/members", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
