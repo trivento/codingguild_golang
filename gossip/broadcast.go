@@ -1,11 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
 	"log"
-	"net/http"
-	"strings"
 	"time"
 )
 
@@ -40,17 +36,9 @@ func broadcast(commandChannel chan command) {
 
 		for _, node := range gossipTo {
 			// Do not send to self
-			if !strings.HasPrefix(node, myHost) {
-				logline := fmt.Sprintf("Sending to %s", node)
-				r, e := http.Post(node+"/members", "application/json", bytes.NewReader(m))
-				if e != nil {
-					logline = fmt.Sprintf("%s. Error: %s", logline, e.Error())
-					commandChannel <- command{DELETE, []string{node}}
-				} else {
-					logline = fmt.Sprintf("%s. Result: [%s]", logline, r.Status)
-				}
-				log.Print(logline)
-			}
+			// use http.Post
+			// TODO implement
+			log.Printf("send %s as json to %s", m, node)
 		}
 		time.Sleep(5 * time.Second)
 	}
