@@ -28,14 +28,14 @@ actief (gossippen van kennis over het cluster) participeert.
 
 var myHost string
 
-func handlePost(w http.ResponseWriter, r *http.Request, memberchannel chan []string) {
+func handleGossip(w http.ResponseWriter, r *http.Request, memberchannel chan []string) {
 	var m members
 
 	if r.Body == nil {
 		http.Error(w, "Please send a request body", 400)
 		return
 	}
-
+	// decode body met json decoder
 	err := json.NewDecoder(r.Body).Decode(&m)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -71,7 +71,7 @@ func main() {
 
 	http.HandleFunc("/members", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			handlePost(w, r, memberchannel)
+			handleGossip(w, r, memberchannel)
 		}
 	})
 

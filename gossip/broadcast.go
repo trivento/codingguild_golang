@@ -11,7 +11,7 @@ import (
 )
 
 // De broadcast daemon moet oneindig lang draaien en periodiek een gossip
-// doen naar een aantal, of alle members
+// doen naar een aantal (max 4) members
 func broadcast() {
 	log.Println("Starting the broadcast")
 	for true {
