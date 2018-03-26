@@ -28,23 +28,25 @@ actief (gossippen van kennis over het cluster) participeert.
 
 var myHost string
 
-func handlePost(w http.ResponseWriter, r *http.Request, memberchannel chan []string) {
+func handleGossip(w http.ResponseWriter, r *http.Request, commandChannel chan command) {
 	var m members
 
 	if r.Body == nil {
 		http.Error(w, "Please send a request body", 400)
 		return
 	}
-
+	// decode body met json decoder
 	err := json.NewDecoder(r.Body).Decode(&m)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
 
-	memberchannel <- m.Nodes
+	// Send the ADD command to the channel
+	commandChannel <- command{ADD, m.Nodes}
 
-	b, me := getMembers()
+	// write all members as json to the response
+	b, me := store.getMembersAsJSON()
 
 	if me != nil {
 		log.Printf("Error creating response: " + me.Error())
@@ -55,23 +57,15 @@ func handlePost(w http.ResponseWriter, r *http.Request, memberchannel chan []str
 
 func main() {
 
-	memberchannel := make(chan []string, 100)
+	// This is the command channel with a buffer size of 100
+	commandChannel := make(chan command, 100)
 
-	go broadcast()
-
-	go func() {
-		for {
-			memberlistupdate := <-memberchannel
-			log.Printf("Processing memberlist %v", memberlistupdate)
-			addMembers(memberlistupdate)
-			log.Printf("Done processing memberlist %v", memberlistupdate)
-
-		}
-	}()
+	go broadcast(commandChannel)
+	go processLoop(commandChannel)
 
 	http.HandleFunc("/members", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			handlePost(w, r, memberchannel)
+			handleGossip(w, r, commandChannel)
 		}
 	})
 
@@ -90,7 +84,7 @@ func main() {
 	if seednode != "NONE" {
 		memberlist = append(memberlist, seednode)
 	}
-	memberchannel <- memberlist
+	commandChannel <- command{ADD, memberlist}
 
 	log.Printf("Started on port %s", myHost)
 	log.Fatal(http.ListenAndServe(listenAddr, nil))

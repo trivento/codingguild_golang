@@ -10,31 +10,32 @@ import (
 	"time"
 )
 
+// Make an array of max 4 with random nodes
+func get4RandomMembers() []string {
+	membersAsList := store.getMembersAsList()
+
+	var gossipTo []string
+	if len(membersAsList) < 4 {
+		gossipTo = membersAsList
+	} else {
+		gossipTo = make([]string, 4)
+		for idx := range gossipTo {
+			pick := rand.Intn(len(membersAsList))
+			gossipTo[idx] = membersAsList[pick]
+		}
+	}
+	return gossipTo
+}
+
 // De broadcast daemon moet oneindig lang draaien en periodiek een gossip
-// doen naar een aantal, of alle members
-func broadcast() {
+// doen naar een aantal (max 4) members
+func broadcast(commandChannel chan command) {
 	log.Println("Starting the broadcast")
 	for true {
-		m, _ := getMembers()
+		m, _ := store.getMembersAsJSON()
 		logKnownHosts()
-		var gossipTo []string
 
-		membersAsList := make([]string, len(store))
-		idx := 0
-		for node := range store {
-			membersAsList[idx] = node
-			idx++
-		}
-
-		if len(membersAsList) < 4 {
-			gossipTo = membersAsList
-		} else {
-			gossipTo = make([]string, 4)
-			for idx := range gossipTo {
-				pick := rand.Intn(len(membersAsList))
-				gossipTo[idx] = membersAsList[pick]
-			}
-		}
+		gossipTo := get4RandomMembers()
 
 		for _, node := range gossipTo {
 			// Do not send to self
@@ -43,7 +44,7 @@ func broadcast() {
 				r, e := http.Post(node+"/members", "application/json", bytes.NewReader(m))
 				if e != nil {
 					logline = fmt.Sprintf("%s. Error: %s", logline, e.Error())
-					delete(store, node)
+					commandChannel <- command{DELETE, []string{node}}
 				} else {
 					logline = fmt.Sprintf("%s. Result: [%s]", logline, r.Status)
 				}
@@ -56,7 +57,7 @@ func broadcast() {
 
 func logKnownHosts() {
 	log.Printf("Known hosts:\n")
-	for node := range store {
+	for node := range store.members {
 		log.Printf("\t- %s\n", node)
 	}
 }
